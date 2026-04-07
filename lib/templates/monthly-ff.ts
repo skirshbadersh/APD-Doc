@@ -1,7 +1,7 @@
 import type { TemplateContext } from "./types";
 import {
   firstName, He, his,
-  lgFirstName,
+  lgFirstName, clientAndLg,
   noteHeader,
   getCommunicationBlock, getDMEBlock, getSafetyBlock,
   getSlotTopics, renderFocusTopic,
@@ -11,6 +11,7 @@ export function generateMonthlyFF(ctx: TemplateContext): string {
   const c = ctx.client;
   const name = firstName(c);
   const lgFirst = lgFirstName(ctx.contacts);
+  const opener = clientAndLg(c, ctx.contacts);
 
   const header = noteHeader(ctx.noteDate, "FF");
   const comm = getCommunicationBlock(ctx, false);
@@ -20,15 +21,15 @@ export function generateMonthlyFF(ctx: TemplateContext): string {
 
   const sections: string[] = [];
 
-  // 1. OPENER
+  // 1. OPENER — client always named first
   if (ctx.isHomeVisit) {
-    sections.push(`${header} After asking for the most convenient moment, WSC conducted a face-to-face home visit with ${name} at ${his(c)} residence to monitor ${name}'s **health and wellbeing**. ${comm}`);
+    sections.push(`${header} After asking for the most convenient moment, WSC conducted a face-to-face home visit with ${opener} at ${his(c)} residence to monitor ${name}'s **health and wellbeing**. ${comm}`);
   } else {
-    sections.push(`${header} After asking for the most convenient moment, WSC conducted a face-to-face visit with ${name} to monitor ${name}'s **health and wellbeing**. ${comm}`);
+    sections.push(`${header} After asking for the most convenient moment, WSC conducted a face-to-face visit with ${opener} to monitor ${name}'s **health and wellbeing**. ${comm}`);
   }
 
-  // 2. BRIEF HEALTH CHECK
-  sections.push(`Regarding **health**, ${name} has been reported to be in stable physical, mental, and behavioral health. WSC reviewed current medications with ${lgFirst}. No changes reported since the last contact.`);
+  // 2. BRIEF HEALTH CHECK — client as co-participant
+  sections.push(`Regarding **health**, ${name} and ${lgFirst} reported ${name} to be in stable physical, mental, and behavioral health. WSC reviewed current medications with ${name} and ${lgFirst}. No changes reported since the last contact.`);
 
   // 3. FOCUS TOPICS from slot-specific rotation
   if (topics.length > 0) {
@@ -36,7 +37,7 @@ export function generateMonthlyFF(ctx: TemplateContext): string {
       sections.push(renderFocusTopic(topic, ctx));
     }
   } else {
-    sections.push(`WSC discussed ${name}'s current **services and supports**. ${lgFirst} confirmed services continue to meet ${name}'s needs. No changes to services or providers were requested.`);
+    sections.push(`WSC discussed ${name}'s current **services and supports** with ${name} and ${lgFirst}. ${name} and ${lgFirst} confirmed services continue to meet ${name}'s needs. No changes to services or providers were requested.`);
   }
 
   // 4. FF-SPECIFIC SECTIONS

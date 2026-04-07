@@ -63,6 +63,17 @@ export function lgRelationship(contacts: Contact[], client: Client): string {
   return `${lg.first_name} ${lg.last_name} (${client.first_name}'s ${rel})`;
 }
 
+/**
+ * Returns "[Client Full Name] and [LG Full Name] ([relationship])" for openers.
+ * Client is always named first per Qlarant compliance.
+ */
+export function clientAndLg(client: Client, contacts: Contact[]): string {
+  const lg = getLegalGuardian(contacts);
+  if (!lg) return fullName(client);
+  const rel = lg.relationship || "Legal Representative";
+  return `${fullName(client)} and ${lg.first_name} ${lg.last_name} (${client.first_name}'s ${rel})`;
+}
+
 export function getProviderList(contacts: Contact[]): string {
   const providers = contacts.filter(
     (c) => c.contact_type === "service_provider" || c.contact_type === "healthcare_provider"
@@ -139,26 +150,27 @@ export function getGoalSummary(goals: Goal[]): string {
 
 export function getCommunicationBlock(ctx: TemplateContext, isCall: boolean): string {
   const c = ctx.client;
+  const name = firstName(c);
   const lg = lgName(ctx.contacts);
+  const lgFirst = lgFirstName(ctx.contacts);
+  const medium = isCall ? "over the call" : "during the visit";
 
   if (has(ctx.considerations, "nonverbal")) {
     return isCall
-      ? `${lg} assisted WSC with needed information for this contact as ${firstName(c)} communicates non-verbally. WSC gathered information about ${firstName(c)}'s health, wellbeing, and services through ${lgFirstName(ctx.contacts)}.`
-      : `${lg} assisted WSC with needed information for this contact as ${firstName(c)} communicates non-verbally. WSC observed ${firstName(c)}'s body language and behavioral cues indicating happiness and wellbeing.`;
+      ? `${name} and ${lg} assisted WSC with obtaining the information needed for this contact. ${name} communicates non-verbally and ${lgFirst} helped with communications ${medium}. WSC gathered information about ${name}'s health, wellbeing, and services through ${lgFirst}.`
+      : `${name} and ${lg} assisted WSC with obtaining the information needed for this contact. ${name} communicates non-verbally and ${lgFirst} helped with communications ${medium}. WSC observed ${name}'s body language and behavioral cues indicating happiness and wellbeing.`;
   }
 
   if (has(ctx.considerations, "limited_verbal")) {
-    const detail = has(ctx.considerations, "hearing_impaired")
-      ? `${firstName(c)} has difficulties with hearing and ${lgFirstName(ctx.contacts)} helped with communications ${isCall ? "over the call" : "during the visit"}`
-      : `${firstName(c)} has difficulties with speech and ${lgFirstName(ctx.contacts)} helped with communications ${isCall ? "over the call" : "during the visit"}`;
-    return `${firstName(c)} and ${lg} assisted WSC with needed information for this contact. ${firstName(c)} showed signs of happiness and wellbeing during this contact. ${detail}.`;
+    const issue = has(ctx.considerations, "hearing_impaired") ? "hearing" : "speech";
+    return `${name} and ${lg} assisted WSC with obtaining the information needed for this contact. ${name} has difficulties with ${issue} and ${lgFirst} helped with communications ${medium}. ${name} showed signs of happiness and wellbeing during this contact.`;
   }
 
   if (has(ctx.considerations, "hearing_impaired")) {
-    return `${lg} assisted WSC with needed information for this contact. ${lgFirstName(ctx.contacts)} helped with communications ${isCall ? "over the call" : "during the visit"} as ${firstName(c)} has hearing difficulties. ${firstName(c)} showed signs of happiness and wellbeing during this contact.`;
+    return `${name} and ${lg} assisted WSC with obtaining the information needed for this contact. ${name} has difficulties with hearing and ${lgFirst} helped with communications ${medium}. ${name} showed signs of happiness and wellbeing during this contact.`;
   }
 
-  return `${firstName(c)} assisted WSC with needed information for this contact. ${firstName(c)} showed signs of happiness and wellbeing during this contact.`;
+  return `${name} and ${lg} assisted WSC with needed information for this contact. ${name} showed signs of happiness and wellbeing during this contact.`;
 }
 
 export function getDMEBlock(ctx: TemplateContext): string {
@@ -320,69 +332,69 @@ export function renderFocusTopic(topic: FocusTopic, ctx: TemplateContext): strin
 
   switch (topic) {
     case "service_satisfaction":
-      return `WSC discussed **service satisfaction** with ${lgFirst}. ${lgFirst} reports ${name} continues to receive services as authorized and is satisfied with current service delivery${svc ? `, including ${svc}` : ""}. ${lgFirst} expressed no complaints or concerns regarding service providers. WSC reminded ${lgFirst} that ${he(c)} has the right to request a change in providers at any time if dissatisfied.`;
+      return `WSC discussed **service satisfaction** with ${name} and ${lgFirst}. ${name} and ${lgFirst} reported satisfaction with current service delivery${svc ? `, including ${svc}` : ""}. No complaints or concerns were expressed regarding service providers. WSC reminded ${name} and ${lgFirst} of the right to request a change in providers at any time if dissatisfied.`;
 
     case "goal_progress":
       return goalSnippet
-        ? `WSC discussed **progress toward support plan goals** with ${lgFirst}. ${name}'s current goal includes "${goalSnippet}." ${lgFirst} reports ${name} continues to make progress and is engaged in activities that support this goal. WSC will continue to monitor and provide support as needed.`
-        : `WSC discussed **progress toward support plan goals** with ${lgFirst}. ${lgFirst} reports ${name} is doing well and continuing to work toward ${his(c)} personal goals. WSC encouraged continued progress and will monitor at the next contact.`;
+        ? `WSC discussed **progress toward support plan goals** with ${name} and ${lgFirst}. ${name}'s current goal includes "${goalSnippet}." ${name} and ${lgFirst} reported ${name} continues to make progress and is engaged in activities that support this goal. WSC will continue to monitor and provide support as needed.`
+        : `WSC discussed **progress toward support plan goals** with ${name} and ${lgFirst}. ${name} and ${lgFirst} reported ${name} is doing well and continuing to work toward ${his(c)} personal goals. WSC encouraged continued progress and will monitor at the next contact.`;
 
     case "choose_services_providers":
-      return `WSC provided **ongoing education on the right to choose services and providers**. ${lgFirst} was reminded that ${name} has the right to choose ${his(c)} own service providers, to change providers at any time, and to participate in decisions about ${his(c)} services. ${lgFirst} confirmed understanding and expressed satisfaction with current provider arrangements.`;
+      return `WSC provided **ongoing education on the right to choose services and providers** to ${name} and ${lgFirst}. WSC reminded ${name} that ${he(c)} has the right to choose ${his(c)} own service providers, to change providers at any time, and to participate in decisions about ${his(c)} services. ${name} and ${lgFirst} confirmed understanding and expressed satisfaction with current provider arrangements.`;
 
     case "medication_education":
-      return `WSC discussed **medication management** with ${lgFirst}. WSC reviewed current medications with ${lgFirst}. No changes reported since the last contact. ${lgFirst} confirmed medications are being administered as prescribed. WSC reminded ${lgFirst} of the importance of following up with ${name}'s physician regarding any side effects or concerns.`;
+      return `WSC discussed **medication management** with ${name} and ${lgFirst}. WSC reviewed current medications. No changes reported since the last contact. ${name} and ${lgFirst} confirmed medications are being administered as prescribed. WSC reminded ${name} and ${lgFirst} of the importance of following up with ${name}'s physician regarding any side effects or concerns.`;
 
     case "daily_routines":
-      return `WSC discussed ${name}'s **daily routines and activities**. ${lgFirst} reports ${name} maintains a consistent daily routine and participates in household and personal care activities${has(ctx.considerations, "low_intellectual_disability") ? " with appropriate support and simplified instructions" : ""}. ${name} appears comfortable with ${his(c)} current schedule. No changes to daily routines were reported.`;
+      return `WSC discussed ${name}'s **daily routines and activities** with ${name} and ${lgFirst}. ${name} maintains a consistent daily routine and participates in household and personal care activities${has(ctx.considerations, "low_intellectual_disability") ? " with appropriate support and simplified instructions" : ""}. ${name} appears comfortable with ${his(c)} current schedule. No changes to daily routines were reported.`;
 
     case "community_integration":
-      return `WSC discussed **community integration** and ${name}'s participation in community activities. ${lgFirst} reports ${name} continues to participate in community outings and activities with support from ${his(c)} circle of support. WSC encouraged continued exploration of community resources and activities that align with ${name}'s interests and preferences.`;
+      return `WSC discussed **community integration** and ${name}'s participation in community activities with ${name} and ${lgFirst}. ${name} continues to participate in community outings and activities with support from ${his(c)} circle of support. WSC encouraged continued exploration of community resources and activities that align with ${name}'s interests and preferences.`;
 
     case "bill_of_rights":
-      return `WSC provided **ongoing education on the Bill of Rights** for persons with developmental disabilities. WSC reviewed key rights including the right to dignity, privacy, freedom from abuse and neglect, and the right to participate in decisions affecting ${his(c)} life. ${lgFirst} confirmed understanding and acknowledged that ${name}'s rights are being respected in ${his(c)} current living arrangement.`;
+      return `WSC provided **ongoing education on the Bill of Rights** for persons with developmental disabilities to ${name} and ${lgFirst}. WSC reviewed key rights including the right to dignity, privacy, freedom from abuse and neglect, and the right to participate in decisions affecting ${his(c)} life. ${name} and ${lgFirst} confirmed understanding and acknowledged that ${name}'s rights are being respected in ${his(c)} current living arrangement.`;
 
     case "satisfaction_personal_life":
-      return `WSC discussed **satisfaction with personal life** with ${lgFirst}. ${lgFirst} reports ${name} appears happy and content with ${his(c)} current living situation, relationships, and daily activities. ${name} showed signs of happiness and wellbeing during this contact. No concerns regarding ${name}'s overall quality of life were identified.`;
+      return `WSC discussed **satisfaction with personal life** with ${name} and ${lgFirst}. ${name} and ${lgFirst} reported ${name} appears happy and content with ${his(c)} current living situation, relationships, and daily activities. ${name} showed signs of happiness and wellbeing during this contact. No concerns regarding ${name}'s overall quality of life were identified.`;
 
     case "health_deep_dive":
-      return `WSC conducted a **health and wellbeing** review with ${lgFirst}. ${lgFirst} reports ${name} has been in stable physical, mental, and behavioral health. ${name} continues to attend scheduled medical and dental appointments. ${c.allergies ? `Allergies (${c.allergies}) remain unchanged.` : "No known allergies."} WSC reminded ${lgFirst} of the importance of maintaining regular preventive healthcare screenings and reporting any health changes promptly.`;
+      return `WSC conducted a **health and wellbeing** review with ${name} and ${lgFirst}. ${name} and ${lgFirst} reported ${name} has been in stable physical, mental, and behavioral health. ${name} continues to attend scheduled medical and dental appointments. ${c.allergies ? `Allergies (${c.allergies}) remain unchanged.` : "No known allergies."} WSC reminded ${name} and ${lgFirst} of the importance of maintaining regular preventive healthcare screenings and reporting any health changes promptly.`;
 
     case "ane_education":
-      return `WSC provided **ongoing education on abuse, neglect, and exploitation (ANE)**. WSC reviewed the signs of abuse, neglect, and exploitation with ${lgFirst} and reminded ${him(c)} of the obligation to report any suspected ANE to the Florida Abuse Hotline at 1-800-962-2873. ${lgFirst} confirmed understanding and stated there are no current ANE concerns. WSC observed no signs of abuse, neglect, or exploitation.`;
+      return `WSC provided **ongoing education on abuse, neglect, and exploitation (ANE)** to ${name} and ${lgFirst}. WSC reviewed the signs of abuse, neglect, and exploitation and reminded ${name} and ${lgFirst} of the obligation to report any suspected ANE to the Florida Abuse Hotline at 1-800-962-2873. ${name} and ${lgFirst} confirmed understanding and stated there are no current ANE concerns. WSC observed no signs of abuse, neglect, or exploitation.`;
 
     case "safety_discussion":
-      return `WSC discussed **safety and emergency preparedness** with ${lgFirst}. ${getSafetyBlock(ctx)} WSC reminded ${lgFirst} to keep emergency supplies and important documents accessible and to review the emergency plan periodically. ${lgFirst} confirmed the personal disaster plan is current.`;
+      return `WSC discussed **safety and emergency preparedness** with ${name} and ${lgFirst}. ${getSafetyBlock(ctx)} WSC reminded ${name} and ${lgFirst} to keep emergency supplies and important documents accessible and to review the emergency plan periodically. ${name} and ${lgFirst} confirmed the personal disaster plan is current.`;
 
     case "natural_community_supports":
-      return `WSC discussed **natural and community supports** available to ${name}. ${lgFirst} reports ${name} continues to receive natural support from family members. WSC encouraged the continued use of natural and generic supports to complement waiver services and promote independence. WSC discussed community resources that may be available to ${name}.`;
+      return `WSC discussed **natural and community supports** available to ${name} with ${name} and ${lgFirst}. ${name} continues to receive natural support from family members. WSC encouraged the continued use of natural and generic supports to complement waiver services and promote independence. WSC discussed community resources that may be available to ${name}.`;
 
     case "developing_resources":
-      return `WSC discussed **developing resources** and additional supports that may benefit ${name}. WSC explored whether any additional community resources, programs, or services could support ${name}'s goals and wellbeing. ${lgFirst} expressed interest in learning about available resources. WSC will follow up with information on applicable programs.`;
+      return `WSC discussed **developing resources** and additional supports that may benefit ${name} with ${name} and ${lgFirst}. WSC explored whether any additional community resources, programs, or services could support ${name}'s goals and wellbeing. ${name} and ${lgFirst} expressed interest in learning about available resources. WSC will follow up with information on applicable programs.`;
 
     case "choose_where_to_live":
-      return `WSC discussed **the right to choose where to live** with ${lgFirst}. ${lgFirst} was informed that ${name} has the right to choose ${his(c)} living arrangement and that options are available if a change is desired. ${lgFirst} confirmed satisfaction with ${name}'s current living situation in ${his(c)} ${c.living_setting?.replace(/_/g, " ") || "family home"} and expressed no desire for changes at this time.`;
+      return `WSC discussed **the right to choose where to live** with ${name} and ${lgFirst}. ${name} and ${lgFirst} were informed that ${name} has the right to choose ${his(c)} living arrangement and that options are available if a change is desired. ${name} and ${lgFirst} confirmed satisfaction with ${name}'s current living situation in ${his(c)} ${c.living_setting?.replace(/_/g, " ") || "family home"} and expressed no desire for changes at this time.`;
 
     case "choose_to_work":
-      return `WSC discussed **the right to choose to work** and employment opportunities with ${lgFirst}. WSC informed ${lgFirst} that ${name} has the right to explore employment options and that employment support services are available through the waiver. ${lgFirst} acknowledged this information and discussed ${name}'s current interests and activities.`;
+      return `WSC discussed **the right to choose to work** and employment opportunities with ${name} and ${lgFirst}. WSC informed ${name} that ${he(c)} has the right to explore employment options and that employment support services are available through the waiver. ${name} and ${lgFirst} acknowledged this information and discussed ${name}'s current interests and activities.`;
 
     case "informed_choice":
-      return `WSC discussed **informed choice** with ${lgFirst}. ${lgFirst} was reminded that ${name} has the right to make informed decisions about ${his(c)} services, providers, and daily life. WSC confirmed that ${lgFirst} understands the options available and that choices are being made in ${name}'s best interest with ${his(c)} input and preferences considered.`;
+      return `WSC discussed **informed choice** with ${name} and ${lgFirst}. ${name} and ${lgFirst} were reminded that ${name} has the right to make informed decisions about ${his(c)} services, providers, and daily life. WSC confirmed that ${name} and ${lgFirst} understand the options available and that choices are being made in ${name}'s best interest with ${his(c)} input and preferences considered.`;
 
     case "qsi_education":
-      return `WSC provided **education on the Questionnaire for Situational Information (QSI)**. WSC explained the purpose of the QSI and how it is used to assess ${name}'s needs and determine the appropriate level of support. ${lgFirst} was informed that the QSI may be updated periodically and that accurate information is essential for ensuring ${name} receives the right services.`;
+      return `WSC provided **education on the Questionnaire for Situational Information (QSI)** to ${name} and ${lgFirst}. WSC explained the purpose of the QSI and how it is used to assess ${name}'s needs and determine the appropriate level of support. ${name} and ${lgFirst} were informed that the QSI may be updated periodically and that accurate information is essential for ensuring ${name} receives the right services.`;
 
     case "people_treated_fairly":
-      return `WSC discussed **whether people in ${name}'s life treat ${him(c)} fairly** and with respect. ${lgFirst} reports that ${name} is treated with dignity and respect by family members, caregivers, and service providers. No concerns regarding mistreatment or unfair treatment were identified. WSC will continue to monitor ${name}'s interactions and relationships.`;
+      return `WSC discussed **whether people in ${name}'s life treat ${him(c)} fairly** and with respect with ${name} and ${lgFirst}. ${name} and ${lgFirst} reported that ${name} is treated with dignity and respect by family members, caregivers, and service providers. No concerns regarding mistreatment or unfair treatment were identified. WSC will continue to monitor ${name}'s interactions and relationships.`;
 
     case "inclusion":
-      return `WSC discussed **inclusion** and ${name}'s participation in activities alongside people without disabilities. ${lgFirst} reports ${name} participates in inclusive community activities and has opportunities to interact with peers. WSC encouraged continued efforts to promote inclusion and meaningful community participation.`;
+      return `WSC discussed **inclusion** and ${name}'s participation in activities alongside people without disabilities with ${name} and ${lgFirst}. ${name} participates in inclusive community activities and has opportunities to interact with peers. WSC encouraged continued efforts to promote inclusion and meaningful community participation.`;
 
     case "healthcare_provider_satisfaction":
-      return `WSC discussed **satisfaction with healthcare providers** with ${lgFirst}. ${lgFirst} reports satisfaction with ${name}'s primary care physician and other healthcare providers. ${name} continues to receive regular medical care and follow-up appointments are being kept. No changes to healthcare providers were requested.`;
+      return `WSC discussed **satisfaction with healthcare providers** with ${name} and ${lgFirst}. ${name} and ${lgFirst} reported satisfaction with ${name}'s primary care physician and other healthcare providers. ${name} continues to receive regular medical care and follow-up appointments are being kept. No changes to healthcare providers were requested.`;
 
     case "hipaa_privacy":
-      return `WSC provided **education on HIPAA and privacy rights**. WSC reviewed ${name}'s rights regarding the privacy and security of ${his(c)} protected health information. ${lgFirst} was reminded of how ${name}'s information is used and shared for treatment, payment, and health care operations. ${lgFirst} confirmed understanding of ${name}'s privacy rights.`;
+      return `WSC provided **education on HIPAA and privacy rights** to ${name} and ${lgFirst}. WSC reviewed ${name}'s rights regarding the privacy and security of ${his(c)} protected health information. ${name} and ${lgFirst} were reminded of how ${name}'s information is used and shared for treatment, payment, and health care operations. ${name} and ${lgFirst} confirmed understanding of ${name}'s privacy rights.`;
   }
 }
 
