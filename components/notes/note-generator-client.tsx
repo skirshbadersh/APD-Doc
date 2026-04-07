@@ -8,6 +8,8 @@ import { generateNote } from "@/lib/templates";
 import { snapToWeekday } from "@/lib/calendar/weekday-utils";
 import { getMonthInSpYear } from "@/lib/templates/helpers";
 import { linkNoteToCalendar } from "@/lib/queries/notes";
+import { copyRichText } from "@/lib/rich-text";
+import { RichNoteEditor } from "@/components/notes/rich-note-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -284,7 +286,7 @@ export function NoteGeneratorClient(props: Props) {
     }
 
     if (status === "finalized") {
-      await navigator.clipboard.writeText(allTexts.join("\n\n" + "=".repeat(60) + "\n\n"));
+      await copyRichText(allTexts.join("\n\n" + "=".repeat(60) + "\n\n"));
       toast.success(`${slots.length} note${slots.length > 1 ? "s" : ""} finalized & copied to clipboard!`);
     } else {
       toast.success(`${slots.length} draft${slots.length > 1 ? "s" : ""} saved`);
@@ -298,7 +300,7 @@ export function NoteGeneratorClient(props: Props) {
   async function handleCopySingle(slot: 1 | 2) {
     const s = slots.find((s) => s.slot === slot);
     if (!s) return;
-    await navigator.clipboard.writeText(s.text);
+    await copyRichText(s.text);
     toast.success(`Contact ${slot} copied to clipboard`);
   }
 
@@ -420,11 +422,10 @@ export function NoteGeneratorClient(props: Props) {
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Textarea
+            <RichNoteEditor
               value={slot.text}
-              onChange={(e) => updateSlotText(slot.slot, e.target.value)}
+              onChange={(md) => updateSlotText(slot.slot, md)}
               rows={16}
-              className="font-mono text-sm"
             />
             {slot.previousText && (
               <Button variant="outline" size="sm" onClick={() => handleUndo(slot.slot)}>

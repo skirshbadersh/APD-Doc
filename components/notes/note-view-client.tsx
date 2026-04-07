@@ -3,17 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { copyRichText } from "@/lib/rich-text";
+import { RichNoteEditor } from "@/components/notes/rich-note-editor";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Copy, Check, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatDate } from "@/lib/utils";
 import type { Client, ProgressNote, NoteStatus } from "@/lib/types/database";
 
-const STATUS_ORDER: NoteStatus[] = ["draft", "reviewed", "finalized", "uploaded_to_iconnect"];
 const STATUS_LABELS: Record<NoteStatus, string> = {
   draft: "Draft",
   reviewed: "Reviewed",
@@ -35,7 +35,7 @@ export function NoteViewClient({
   const isDraft = note.status === "draft";
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(editableText);
+    await copyRichText(editableText);
     toast.success("Copied to clipboard! Paste into iConnect.");
   }
 
@@ -57,7 +57,6 @@ export function NoteViewClient({
   async function handleDelete() {
     if (!confirm("Delete this note? This will also unlink it from the calendar.")) return;
     const supabase = createClient();
-    // Unlink from calendar
     await supabase
       .from("annual_calendar")
       .update({ required_contact_1_note_id: null, status: "pending" })
@@ -66,12 +65,10 @@ export function NoteViewClient({
       .from("annual_calendar")
       .update({ required_contact_2_note_id: null, status: "pending" })
       .eq("required_contact_2_note_id", note.id);
-    // Unlink events
     await supabase
       .from("client_events")
       .update({ documented_in_note_id: null })
       .eq("documented_in_note_id", note.id);
-    // Delete the note
     const { error } = await supabase.from("progress_notes").delete().eq("id", note.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Note deleted");
@@ -94,7 +91,7 @@ export function NoteViewClient({
     if (error) { toast.error(error.message); return; }
     setNote(data);
     if (newStatus === "finalized") {
-      await navigator.clipboard.writeText(editableText);
+      await copyRichText(editableText);
       toast.success("Finalized & copied to clipboard!");
     } else {
       toast.success(`Status changed to ${STATUS_LABELS[newStatus]}`);
@@ -126,12 +123,11 @@ export function NoteViewClient({
       <div className="space-y-4">
         <div className="space-y-2">
           <Label>Note Text {isDraft ? "(editable)" : "(read-only — finalize to lock)"}</Label>
-          <Textarea
+          <RichNoteEditor
             value={editableText}
-            onChange={(e) => setEditableText(e.target.value)}
-            rows={20}
-            className="font-mono text-sm"
+            onChange={setEditableText}
             readOnly={!isDraft}
+            rows={20}
           />
         </div>
 
