@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RefreshCw, Loader2, CheckCircle2 } from "lucide-react";
+import { RefreshCw, Loader2, CheckCircle2, CalendarRange } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import toast from "react-hot-toast";
 import type { AnnualCalendar, ContactType, NoteCategory, CalendarEntryStatus } from "@/lib/types/database";
@@ -173,7 +173,11 @@ export function CalendarGrid({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Link href={`/clients/${clientId}/notes/year`} className={buttonVariants({ variant: "outline" })}>
+          <CalendarRange className="h-4 w-4 mr-2" />
+          Generate Full Year Preview
+        </Link>
         <Button variant="outline" onClick={handleRegenerate} disabled={regenerating}>
           {regenerating ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />

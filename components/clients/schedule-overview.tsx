@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { ArrowRight, AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { ArrowRight, AlertCircle, CheckCircle2, Clock, CalendarRange } from "lucide-react";
 import type { AnnualCalendar, NoteCategory } from "@/lib/types/database";
 
 const MONTH_NAMES = [
@@ -179,6 +179,17 @@ export function ScheduleOverview({
               <p className="text-xs text-muted-foreground">{monthsAway(nextSpDelivery)}</p>
             </div>
           )}
+        </div>
+
+        {/* Full year preview link */}
+        <div className="pt-2">
+          <Link
+            href={`/clients/${clientId}/notes/year`}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            <CalendarRange className="h-4 w-4 mr-2" />
+            Generate Full Year Preview
+          </Link>
         </div>
       </CardContent>
     </Card>
