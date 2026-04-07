@@ -29,6 +29,35 @@ export function htmlToMarkdown(html: string): string {
 }
 
 /**
+ * Convert markdown-style bold to an array of { text, bold } segments
+ * for use with the docx library's TextRun objects.
+ */
+export function markdownToDocxRuns(text: string): Array<{ text: string; bold: boolean }> {
+  const runs: Array<{ text: string; bold: boolean }> = [];
+  const regex = /\*\*(.+?)\*\*/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      runs.push({ text: text.slice(lastIndex, match.index), bold: false });
+    }
+    runs.push({ text: match[1], bold: true });
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    runs.push({ text: text.slice(lastIndex), bold: false });
+  }
+
+  if (runs.length === 0 && text.length > 0) {
+    runs.push({ text, bold: false });
+  }
+
+  return runs;
+}
+
+/**
  * Copy text to clipboard as both rich text (HTML) and plain text.
  * Bold **markers** become actual <b> in the HTML version.
  */

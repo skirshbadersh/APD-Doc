@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Copy, Loader2, ArrowLeft } from "lucide-react";
+import { Copy, Loader2, ArrowLeft, FileDown } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "@/lib/i18n/context";
 import { getMonthNames1 } from "@/lib/i18n/format";
@@ -64,6 +64,7 @@ export function YearPreviewClient(props: Props) {
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const lg = contacts.find((c) => c.is_legal_rep);
   const defaultContactWith = lg
@@ -166,6 +167,51 @@ export function YearPreviewClient(props: Props) {
 
     await copyRichText(parts.join("\n\n"));
     toast.success(t("yearPreview.notesCopied", { count: notes.length }));
+  }
+
+  async function handleExportWord() {
+    setExporting(true);
+    try {
+      const res = await fetch("/api/notes/export-year", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientName: `${client.first_name} ${client.last_name}`,
+          spYear: calendar[0]?.sp_year ?? "",
+          wscName: profileData.full_name || "WSC",
+          qoName: profileData.qo_name || "",
+          notes: notes.map((n) => ({
+            month: n.month,
+            year: n.year,
+            slot: n.slot,
+            contactType: n.contactType,
+            category: n.category,
+            date: n.date,
+            text: n.text,
+          })),
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Export failed");
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.headers.get("Content-Disposition")?.split("filename=")[1]?.replace(/"/g, "") || "notes.docx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Word document downloaded");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setExporting(false);
+    }
   }
 
   async function handleSaveAll(status: "draft" | "finalized") {
@@ -318,6 +364,10 @@ export function YearPreviewClient(props: Props) {
             </Button>
             <Button variant="outline" onClick={handleCopyAll}>
               <Copy className="h-4 w-4 mr-2" /> {t("yearPreview.copyAll")}
+            </Button>
+            <Button variant="outline" onClick={handleExportWord} disabled={exporting}>
+              {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileDown className="h-4 w-4 mr-2" />}
+              Export to Word
             </Button>
           </div>
         </>
