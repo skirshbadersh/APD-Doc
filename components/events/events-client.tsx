@@ -26,8 +26,15 @@ import {
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatDate } from "@/lib/utils";
-import { EVENT_TYPE_LABELS } from "@/lib/constants-events";
+import { useTranslation } from "@/lib/i18n/context";
 import type { ClientEvent, EventType } from "@/lib/types/database";
+
+const EVENT_TYPES: EventType[] = [
+  "address_change", "living_setting_change", "guardian_change",
+  "provider_change", "service_change", "hospitalization",
+  "health_change", "behavioral_incident", "goal_change",
+  "family_change", "program_change", "compliance_event", "other",
+];
 
 type FormState = {
   event_date: string;
@@ -62,6 +69,7 @@ export function EventsClient({
   clientId: string;
   initial: ClientEvent[];
 }) {
+  const { t } = useTranslation();
   const [items, setItems] = useState<ClientEvent[]>(initial);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -81,7 +89,7 @@ export function EventsClient({
   }
 
   async function handleSave() {
-    if (!form.description) { toast.error("Description is required"); return; }
+    if (!form.description) { toast.error(t("events.descriptionRequired")); return; }
     setSaving(true);
     const supabase = createClient();
     const payload = {
@@ -119,7 +127,7 @@ export function EventsClient({
       <div className="flex justify-end">
         <Button onClick={openAdd}>
           <Plus className="h-4 w-4 mr-2" />
-          Log Event
+          {t("events.logEvent")}
         </Button>
       </div>
 
@@ -128,11 +136,11 @@ export function EventsClient({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Flags</TableHead>
-                <TableHead>Documented</TableHead>
+                <TableHead>{t("events.date")}</TableHead>
+                <TableHead>{t("events.type")}</TableHead>
+                <TableHead>{t("events.description")}</TableHead>
+                <TableHead>{t("events.flags")}</TableHead>
+                <TableHead>{t("events.documented")}</TableHead>
                 <TableHead className="w-20" />
               </TableRow>
             </TableHeader>
@@ -141,22 +149,22 @@ export function EventsClient({
                 <TableRow key={e.id}>
                   <TableCell className="whitespace-nowrap">{formatDate(e.event_date)}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{EVENT_TYPE_LABELS[e.event_type]}</Badge>
+                    <Badge variant="outline">{t("eventType." + e.event_type)}</Badge>
                   </TableCell>
                   <TableCell className="max-w-sm">
                     <p className="truncate">{e.description}</p>
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      {e.requires_sp_update && <Badge variant="destructive" className="text-[10px]">SP Update</Badge>}
-                      {e.requires_cp_amendment && <Badge variant="destructive" className="text-[10px]">CP Amend</Badge>}
+                      {e.requires_sp_update && <Badge variant="destructive" className="text-[10px]">{t("events.spUpdate")}</Badge>}
+                      {e.requires_cp_amendment && <Badge variant="destructive" className="text-[10px]">{t("events.cpAmend")}</Badge>}
                     </div>
                   </TableCell>
                   <TableCell>
                     {e.documented_in_note_id ? (
-                      <span className="text-green-600 text-sm">Yes</span>
+                      <span className="text-green-600 text-sm">{t("events.yes")}</span>
                     ) : (
-                      <span className="text-yellow-600 text-sm">No</span>
+                      <span className="text-yellow-600 text-sm">{t("events.no")}</span>
                     )}
                   </TableCell>
                   <TableCell>
@@ -176,38 +184,38 @@ export function EventsClient({
         </div>
       ) : (
         <div className="border rounded-lg p-12 text-center text-muted-foreground">
-          No events logged yet.
+          {t("events.noEvents")}
         </div>
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingId ? "Edit Event" : "Log Event"}</DialogTitle>
+            <DialogTitle>{editingId ? t("events.editEvent") : t("events.logEvent")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Event Date</Label>
+                <Label>{t("events.eventDate")}</Label>
                 <Input type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>Event Type</Label>
+                <Label>{t("events.eventType")}</Label>
                 <select
                   value={form.event_type}
                   onChange={(e) => setForm({ ...form, event_type: e.target.value as EventType })}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
                 >
-                  {Object.entries(EVENT_TYPE_LABELS).map(([v, l]) => (
-                    <option key={v} value={v}>{l}</option>
+                  {EVENT_TYPES.map((v) => (
+                    <option key={v} value={v}>{t("eventType." + v)}</option>
                   ))}
                 </select>
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Description *</Label>
+              <Label>{t("events.descriptionLabel")}</Label>
               <Textarea
-                placeholder="What happened? Be specific — this text can be inserted directly into progress notes."
+                placeholder={t("events.descriptionPlaceholder")}
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 rows={4}
@@ -216,17 +224,17 @@ export function EventsClient({
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Checkbox checked={form.requires_sp_update} onCheckedChange={(v) => setForm({ ...form, requires_sp_update: !!v })} />
-                <Label className="font-normal">Requires Support Plan update</Label>
+                <Label className="font-normal">{t("events.requiresSPUpdate")}</Label>
               </div>
               <div className="flex items-center gap-2">
                 <Checkbox checked={form.requires_cp_amendment} onCheckedChange={(v) => setForm({ ...form, requires_cp_amendment: !!v })} />
-                <Label className="font-normal">Requires Cost Plan amendment</Label>
+                <Label className="font-normal">{t("events.requiresCPAmendment")}</Label>
               </div>
             </div>
           </div>
           <DialogFooter>
             <Button onClick={handleSave} disabled={saving}>
-              {saving ? "Saving..." : editingId ? "Save Changes" : "Log Event"}
+              {saving ? t("common.saving") : editingId ? t("events.saveChanges") : t("events.logEvent")}
             </Button>
           </DialogFooter>
         </DialogContent>

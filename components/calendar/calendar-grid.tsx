@@ -9,54 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RefreshCw, Loader2, CheckCircle2, CalendarRange } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import toast from "react-hot-toast";
+import { useTranslation } from "@/lib/i18n/context";
+import { getMonthNames1 } from "@/lib/i18n/format";
 import type { AnnualCalendar, ContactType, NoteCategory, CalendarEntryStatus } from "@/lib/types/database";
 import { getRotationTopics, type FocusTopic } from "@/lib/templates/helpers";
-
-const MONTH_NAMES = [
-  "", "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
-const CATEGORY_LABELS: Partial<Record<NoteCategory, string>> = {
-  monthly_tc: "Monthly TC",
-  monthly_ff: "Monthly FF",
-  quarterly_provider_review: "Quarterly Review",
-  hurricane_season: "Hurricane Prep",
-  service_auth_new_fy: "SA Distribution",
-  pre_sp_activities: "Pre-SP",
-  sp_meeting_ff: "SP Meeting FF",
-  sp_delivery: "SP Delivery",
-  provider_contact: "Provider Contact",
-  adm_cp_adjustment: "CP Adjustment",
-  adm_sa_distribution: "SA Distribution",
-  cdc_related: "CDC",
-  developing_resources: "Resources",
-  custom: "Custom",
-};
-
-const TOPIC_LABELS: Partial<Record<FocusTopic, string>> = {
-  service_satisfaction: "Service satisfaction",
-  goal_progress: "Goal progress",
-  choose_services_providers: "Choice of providers",
-  medication_education: "Medication education",
-  daily_routines: "Daily routines",
-  community_integration: "Community integration",
-  bill_of_rights: "Bill of Rights",
-  satisfaction_personal_life: "Life satisfaction",
-  health_deep_dive: "Health review",
-  ane_education: "ANE education",
-  safety_discussion: "Safety",
-  natural_community_supports: "Natural supports",
-  developing_resources: "Resources",
-  choose_where_to_live: "Residential choice",
-  choose_to_work: "Employment",
-  informed_choice: "Informed choice",
-  qsi_education: "QSI education",
-  people_treated_fairly: "Fair treatment",
-  inclusion: "Inclusion",
-  healthcare_provider_satisfaction: "Healthcare satisfaction",
-  hipaa_privacy: "HIPAA/Privacy",
-};
 
 const STATUS_STYLES: Record<CalendarEntryStatus, string> = {
   pending: "border-yellow-300 bg-yellow-50 dark:bg-yellow-950",
@@ -74,6 +30,7 @@ function ContactRow({
   month,
   year,
   halfLabel,
+  t,
 }: {
   slot: 1 | 2;
   type: ContactType | null;
@@ -83,6 +40,7 @@ function ContactRow({
   month: number;
   year: number;
   halfLabel: string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }) {
   if (!type || !category) return null;
   const done = !!noteId;
@@ -92,7 +50,7 @@ function ContactRow({
       <div className="flex items-center gap-1.5 min-w-0">
         <span className="text-[10px] text-muted-foreground w-3 shrink-0">{slot}.</span>
         <Badge variant={variant} className="text-[10px] shrink-0">
-          {type} — {CATEGORY_LABELS[category] ?? category}
+          {type} — {t("noteCategory." + category)}
         </Badge>
         {done && <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />}
       </div>
@@ -115,6 +73,8 @@ export function CalendarGrid({
   spEffectiveMonth?: number;
 }) {
   const router = useRouter();
+  const { t, locale } = useTranslation();
+  const MONTH_NAMES = getMonthNames1(locale);
   const [regenerating, setRegenerating] = useState(false);
 
   async function handleRegenerate() {
@@ -129,7 +89,7 @@ export function CalendarGrid({
         const err = await res.json();
         throw new Error(err.error || "Failed to generate calendar");
       }
-      toast.success("Calendar regenerated");
+      toast.success(t("calendar.regenerated"));
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to generate calendar");
@@ -147,7 +107,7 @@ export function CalendarGrid({
     return (
       <Card>
         <CardContent className="py-12 text-center text-muted-foreground">
-          Set an SP effective date on the client profile to generate a calendar.
+          {t("calendar.setSpDate")}
         </CardContent>
       </Card>
     );
@@ -156,15 +116,15 @@ export function CalendarGrid({
   if (entries.length === 0) {
     return (
       <div className="text-center py-12 space-y-4">
-        <p className="text-muted-foreground">No calendar entries yet.</p>
+        <p className="text-muted-foreground">{t("calendar.noEntries")}</p>
         <Button onClick={handleRegenerate} disabled={regenerating}>
           {regenerating ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Generating...
+              {t("calendar.generating")}
             </>
           ) : (
-            "Generate Calendar"
+            t("calendar.generateCalendar")
           )}
         </Button>
       </div>
@@ -176,7 +136,7 @@ export function CalendarGrid({
       <div className="flex justify-end gap-2">
         <Link href={`/clients/${clientId}/notes/year`} className={buttonVariants({ variant: "outline" })}>
           <CalendarRange className="h-4 w-4 mr-2" />
-          Generate Full Year Preview
+          {t("calendar.generateFullYear")}
         </Link>
         <Button variant="outline" onClick={handleRegenerate} disabled={regenerating}>
           {regenerating ? (
@@ -184,7 +144,7 @@ export function CalendarGrid({
           ) : (
             <RefreshCw className="h-4 w-4 mr-2" />
           )}
-          Regenerate Calendar
+          {t("calendar.regenerate")}
         </Button>
       </div>
 
@@ -205,7 +165,7 @@ export function CalendarGrid({
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-semibold">
                     {MONTH_NAMES[entry.month]} {entry.year}
-                    {isCurrent && <span className="text-xs font-normal text-primary ml-1">(now)</span>}
+                    {isCurrent && <span className="text-xs font-normal text-primary ml-1">{t("calendar.now")}</span>}
                   </CardTitle>
                   <Badge
                     variant={
@@ -219,7 +179,7 @@ export function CalendarGrid({
                     }
                     className="text-[10px] capitalize"
                   >
-                    {isPast && entry.status === "pending" ? "overdue" : entry.status.replace("_", " ")}
+                    {isPast && entry.status === "pending" ? t("calendar.overdue") : t("calendar." + (entry.status === "in_progress" ? "inProgress" : entry.status))}
                   </Badge>
                 </div>
               </CardHeader>
@@ -234,7 +194,8 @@ export function CalendarGrid({
                     clientId={clientId}
                     month={entry.month}
                     year={entry.year}
-                    halfLabel="1st-15th"
+                    halfLabel={t("calendar.halfFirst")}
+                    t={t}
                   />
                   <ContactRow
                     slot={2}
@@ -244,15 +205,16 @@ export function CalendarGrid({
                     clientId={clientId}
                     month={entry.month}
                     year={entry.year}
-                    halfLabel="16th-end"
+                    halfLabel={t("calendar.halfSecond")}
+                    t={t}
                   />
                 </div>
 
                 {/* Topic preview */}
                 {topics.length > 0 && (
                   <div className="text-[10px] text-muted-foreground">
-                    <span className="font-medium">Topics: </span>
-                    {topics.map((t) => TOPIC_LABELS[t] ?? t).join(", ")}
+                    <span className="font-medium">{t("calendar.topics")} </span>
+                    {topics.map((tp) => t("topic." + tp)).join(", ")}
                   </div>
                 )}
 
@@ -262,7 +224,7 @@ export function CalendarGrid({
                     href={`/clients/${clientId}/notes/new?month=${entry.month}&year=${entry.year}`}
                     className={buttonVariants({ variant: "outline", size: "sm" }) + " w-full mt-1"}
                   >
-                    {entry.status === "in_progress" ? "Continue" : "Start Notes"}
+                    {entry.status === "in_progress" ? t("calendar.continue") : t("calendar.startNotes")}
                   </Link>
                 )}
               </CardContent>

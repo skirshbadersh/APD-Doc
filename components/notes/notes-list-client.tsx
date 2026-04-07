@@ -94,7 +94,7 @@ export function NotesListClient({
                   </TableCell>
                   <TableCell>
                     <Badge variant={STATUS_VARIANT[note.status as NoteStatus]} className="capitalize">
-                      {note.status.replace(/_/g, " ")}
+                      {t("status." + (note.status === "uploaded_to_iconnect" ? "uploadedToIconnect" : note.status))}
                     </Badge>
                   </TableCell>
                   <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
@@ -112,7 +112,7 @@ export function NotesListClient({
         </div>
       ) : (
         <div className="border rounded-lg p-12 text-center text-muted-foreground">
-          No notes yet for this client.
+          {t("notes.noNotes")}
         </div>
       )}
     </div>

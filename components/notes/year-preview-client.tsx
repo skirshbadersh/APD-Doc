@@ -17,24 +17,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Copy, Loader2, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
+import { useTranslation } from "@/lib/i18n/context";
+import { getMonthNames1 } from "@/lib/i18n/format";
 import type {
   Client, Contact, Service, Goal, Medication,
   ClientSpecialConsideration, Profile, AnnualCalendar,
   ContactType, NoteCategory,
 } from "@/lib/types/database";
 import type { TemplateContext } from "@/lib/templates/types";
-
-const MONTH_NAMES = [
-  "", "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
-const CAT_LABELS: Partial<Record<NoteCategory, string>> = {
-  monthly_tc: "Monthly TC", monthly_ff: "Monthly FF",
-  quarterly_provider_review: "Quarterly Review", hurricane_season: "Hurricane Prep",
-  service_auth_new_fy: "SA Distribution", pre_sp_activities: "Pre-SP Activities",
-  sp_meeting_ff: "SP Meeting FF", sp_delivery: "SP Delivery",
-};
 
 interface YearNote {
   calendarId: string;
@@ -67,6 +57,8 @@ function weekdayInHalf(year: number, month: number, half: 1 | 2): string {
 export function YearPreviewClient(props: Props) {
   const { client, contacts, services, goals, medications, considerations, profile, calendar } = props;
   const router = useRouter();
+  const { t, locale } = useTranslation();
+  const MONTH_NAMES = getMonthNames1(locale);
 
   const [notes, setNotes] = useState<YearNote[]>([]);
   const [generating, setGenerating] = useState(false);
@@ -142,7 +134,7 @@ export function YearPreviewClient(props: Props) {
     setNotes(results);
     setGenerated(true);
     setGenerating(false);
-    toast.success(`Generated ${results.length} notes for the full year`);
+    toast.success(t("yearPreview.generated", { count: results.length }));
   }, [calendar, client, contacts, services, goals, medications, considerations, profileData, defaultContactWith]);
 
   function updateNoteText(idx: number, text: string) {
@@ -155,7 +147,7 @@ export function YearPreviewClient(props: Props) {
 
   async function handleCopySingle(idx: number) {
     await copyRichText(notes[idx].text);
-    toast.success("Note copied to clipboard");
+    toast.success(t("yearPreview.noteCopied"));
   }
 
   async function handleCopyAll() {
@@ -169,11 +161,11 @@ export function YearPreviewClient(props: Props) {
         currentMonth = note.month;
         currentYear = note.year;
       }
-      parts.push(`--- Contact ${note.slot}: ${note.contactType} — ${CAT_LABELS[note.category] ?? note.category} (${note.date}) ---\n\n${note.text}`);
+      parts.push(`--- ${t("yearPreview.contactSeparator", { slot: note.slot, type: note.contactType, category: t("noteCategory." + note.category), date: note.date })} ---\n\n${note.text}`);
     }
 
     await copyRichText(parts.join("\n\n"));
-    toast.success(`${notes.length} notes copied to clipboard`);
+    toast.success(t("yearPreview.notesCopied", { count: notes.length }));
   }
 
   async function handleSaveAll(status: "draft" | "finalized") {
@@ -200,7 +192,7 @@ export function YearPreviewClient(props: Props) {
         .single();
 
       if (error) {
-        toast.error(`Error saving ${MONTH_NAMES[note.month]} Contact ${note.slot}: ${error.message}`);
+        toast.error(t("yearPreview.errorSaving", { month: MONTH_NAMES[note.month], slot: note.slot, message: error.message }));
         continue;
       }
 
@@ -212,9 +204,9 @@ export function YearPreviewClient(props: Props) {
 
     if (status === "finalized") {
       await handleCopyAll();
-      toast.success(`${saved} notes finalized & copied`);
+      toast.success(t("yearPreview.finalizedCopied", { count: saved }));
     } else {
-      toast.success(`${saved} drafts saved`);
+      toast.success(t("yearPreview.draftsSaved", { count: saved }));
     }
     setSaving(false);
   }
@@ -236,10 +228,10 @@ export function YearPreviewClient(props: Props) {
           </Link>
           <div>
             <h1 className="text-2xl font-bold">
-              Full Year Preview: {client.first_name} {client.last_name}
+              {t("yearPreview.title", { name: `${client.first_name} ${client.last_name}` })}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {calendar[0]?.sp_year ? `SP Year ${calendar[0].sp_year}` : ""} — {calendar.length} months, {notes.length || "~" + calendar.length * 2} notes
+              {t("yearPreview.spYearInfo", { year: calendar[0]?.sp_year ?? "", months: calendar.length, notes: notes.length || "~" + calendar.length * 2 })}
             </p>
           </div>
         </div>
@@ -249,13 +241,13 @@ export function YearPreviewClient(props: Props) {
         <Card>
           <CardContent className="py-12 text-center space-y-4">
             <p className="text-muted-foreground">
-              This will generate all {calendar.length * 2} notes for {client.first_name}'s full SP year using the template system.
+              {t("yearPreview.generateDesc", { count: calendar.length * 2, name: client.first_name })}
             </p>
             <Button onClick={handleGenerate} disabled={generating} size="lg">
               {generating ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating {calendar.length * 2} notes...</>
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {t("yearPreview.generatingCount", { count: calendar.length * 2 })}</>
               ) : (
-                "Generate Full Year"
+                t("yearPreview.generateFullYear")
               )}
             </Button>
           </CardContent>
@@ -284,7 +276,7 @@ export function YearPreviewClient(props: Props) {
                               <Badge variant={note.contactType === "FF" ? "default" : note.contactType === "ADM" ? "outline" : "secondary"}>
                                 {note.contactType}
                               </Badge>
-                              Contact {note.slot} — {CAT_LABELS[note.category] ?? note.category}
+                              {t("notes.contactSlot", { slot: note.slot })} — {t("noteCategory." + note.category)}
                             </CardTitle>
                             <div className="flex items-center gap-2">
                               <Input
@@ -294,7 +286,7 @@ export function YearPreviewClient(props: Props) {
                                 className="w-40 h-8 text-sm"
                               />
                               <Button variant="ghost" size="sm" onClick={() => handleCopySingle(idx)}>
-                                <Copy className="h-3.5 w-3.5 mr-1" /> Copy
+                                <Copy className="h-3.5 w-3.5 mr-1" /> {t("notes.copy")}
                               </Button>
                             </div>
                           </div>
@@ -319,13 +311,13 @@ export function YearPreviewClient(props: Props) {
           <div className="flex gap-3 sticky bottom-0 bg-background py-4 border-t">
             <Button onClick={() => handleSaveAll("finalized")} disabled={saving} className="flex-1">
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Copy className="h-4 w-4 mr-2" />}
-              {saving ? "Saving..." : `Finalize & Copy All Year (${notes.length})`}
+              {saving ? t("notes.saving") : t("yearPreview.finalizeAll", { count: notes.length })}
             </Button>
             <Button variant="outline" onClick={() => handleSaveAll("draft")} disabled={saving}>
-              Save All as Drafts
+              {t("yearPreview.saveAllDrafts")}
             </Button>
             <Button variant="outline" onClick={handleCopyAll}>
-              <Copy className="h-4 w-4 mr-2" /> Copy All (no save)
+              <Copy className="h-4 w-4 mr-2" /> {t("yearPreview.copyAll")}
             </Button>
           </div>
         </>
