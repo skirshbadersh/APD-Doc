@@ -37,10 +37,9 @@ export default function SignupPage() {
       return;
     }
 
-    // Auto-confirm is typically enabled for dev.
-    // The handle_new_user trigger creates the profile row.
-    router.push("/");
-    router.refresh();
+    // Hard redirect so the server picks up the new session cookie.
+    // Dashboard layout will show the profile setup modal (qo_name is null).
+    window.location.href = "/";
   }
 
   return (
