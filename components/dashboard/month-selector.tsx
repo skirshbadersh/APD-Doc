@@ -2,11 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-
-const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
+import { useTranslation } from "@/lib/i18n/context";
+import { getMonthNames } from "@/lib/i18n/format";
 
 export function MonthSelector({
   month,
@@ -17,6 +14,9 @@ export function MonthSelector({
   year: number;
   onChange: (month: number, year: number) => void;
 }) {
+  const { locale } = useTranslation();
+  const monthNames = getMonthNames(locale);
+
   function prev() {
     if (month === 1) onChange(12, year - 1);
     else onChange(month - 1, year);
@@ -33,7 +33,7 @@ export function MonthSelector({
         <ChevronLeft className="h-4 w-4" />
       </Button>
       <h2 className="text-xl font-bold min-w-[180px] text-center">
-        {MONTH_NAMES[month - 1]} {year}
+        {monthNames[month - 1]} {year}
       </h2>
       <Button variant="outline" size="icon" onClick={next}>
         <ChevronRight className="h-4 w-4" />

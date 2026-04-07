@@ -2,6 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import type { WorkQueueRow } from "@/lib/queries/dashboard";
+import { useTranslation } from "@/lib/i18n/context";
 
 function Stat({ label, value, color }: { label: string; value: number; color?: string }) {
   return (
@@ -19,6 +20,7 @@ export function StatsBar({
   rows: WorkQueueRow[];
   overdueCount: number;
 }) {
+  const { t } = useTranslation();
   const totalClients = rows.length;
   let notesNeeded = 0;
   let completed = 0;
@@ -42,12 +44,12 @@ export function StatsBar({
       <CardContent className="py-4">
         <div className="flex items-center gap-6 justify-between">
           <div className="flex gap-6">
-            <Stat label="Clients" value={totalClients} />
-            <Stat label="Notes Needed" value={notesNeeded} />
-            <Stat label="Completed" value={completed} color="text-green-600" />
-            <Stat label="Remaining" value={remaining} color={remaining > 0 ? "text-yellow-600" : ""} />
+            <Stat label={t("stats.clients")} value={totalClients} />
+            <Stat label={t("stats.notesNeeded")} value={notesNeeded} />
+            <Stat label={t("stats.completed")} value={completed} color="text-green-600" />
+            <Stat label={t("stats.remaining")} value={remaining} color={remaining > 0 ? "text-yellow-600" : ""} />
             {overdueCount > 0 && (
-              <Stat label="Overdue" value={overdueCount} color="text-red-600" />
+              <Stat label={t("stats.overdue")} value={overdueCount} color="text-red-600" />
             )}
           </div>
           <div className="flex items-center gap-3 min-w-[200px]">

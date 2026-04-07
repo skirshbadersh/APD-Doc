@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Zap } from "lucide-react";
 import toast from "react-hot-toast";
 import type { WorkQueueRow } from "@/lib/queries/dashboard";
+import { useTranslation } from "@/lib/i18n/context";
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1); // 1-indexed
   const [year, setYear] = useState(now.getFullYear());
@@ -127,10 +129,10 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success(`Generated ${data.generated} draft notes`);
+      toast.success(t("dashboard.generatedDrafts", { count: data.generated }));
       fetchData();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to generate drafts");
+      toast.error(err instanceof Error ? err.message : t("dashboard.generateFailed"));
     } finally {
       setGenerating(false);
     }
@@ -140,8 +142,8 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Monthly work queue</p>
+          <h1 className="text-2xl font-bold">{t("dashboard.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("dashboard.subtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
           <MonthSelector month={month} year={year} onChange={handleMonthChange} />
@@ -152,7 +154,7 @@ export default function DashboardPage() {
               disabled={generating}
             >
               {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Zap className="h-4 w-4 mr-2" />}
-              {generating ? "Generating..." : "Generate All Drafts"}
+              {generating ? t("dashboard.generating") : t("dashboard.generateAllDrafts")}
             </Button>
           )}
         </div>

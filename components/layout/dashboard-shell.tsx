@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useTranslation } from "@/lib/i18n/context";
+import { LocaleToggle } from "@/components/ui/locale-toggle";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,9 +17,9 @@ import type { User } from "@supabase/supabase-js";
 import type { Profile } from "@/lib/types/database";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/clients", label: "Clients", icon: Users },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/", labelKey: "nav.dashboard", icon: LayoutDashboard },
+  { href: "/clients", labelKey: "nav.clients", icon: Users },
+  { href: "/settings", labelKey: "nav.settings", icon: Settings },
 ];
 
 export function DashboardShell({
@@ -31,6 +33,7 @@ export function DashboardShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useTranslation();
 
   async function handleLogout() {
     const supabase = createClient();
@@ -46,7 +49,7 @@ export function DashboardShell({
       {/* Sidebar */}
       <aside className="w-56 border-r bg-muted/40 flex flex-col">
         <div className="p-4 border-b">
-          <h1 className="text-lg font-bold">APD DocTool</h1>
+          <h1 className="text-lg font-bold">{t("app.title")}</h1>
         </div>
         <nav className="flex-1 p-2 space-y-1">
           {navItems.map((item) => {
@@ -66,13 +69,16 @@ export function DashboardShell({
                 )}
               >
                 <item.icon className="h-4 w-4" />
-                {item.label}
+                {t(item.labelKey)}
               </Link>
             );
           })}
         </nav>
         <div className="border-t p-3">
-          <p className="text-sm font-medium truncate mb-2">{displayName}</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium truncate">{displayName}</p>
+            <LocaleToggle />
+          </div>
           <Button
             variant="ghost"
             size="sm"
@@ -80,7 +86,7 @@ export function DashboardShell({
             onClick={handleLogout}
           >
             <LogOut className="h-4 w-4" />
-            Sign Out
+            {t("nav.signOut")}
           </Button>
         </div>
       </aside>

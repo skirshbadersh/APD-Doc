@@ -26,18 +26,8 @@ import type {
 } from "@/lib/types/database";
 import type { TemplateContext } from "@/lib/templates/types";
 import { CONSIDERATION_LABELS } from "@/lib/constants";
-
-const MONTH_NAMES = [
-  "", "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
-const CAT_LABELS: Partial<Record<NoteCategory, string>> = {
-  monthly_tc: "Monthly TC", monthly_ff: "Monthly FF",
-  quarterly_provider_review: "Quarterly Review", hurricane_season: "Hurricane Prep",
-  service_auth_new_fy: "SA Distribution", pre_sp_activities: "Pre-SP Activities",
-  sp_meeting_ff: "SP Meeting FF", sp_delivery: "SP Delivery",
-};
+import { useTranslation } from "@/lib/i18n/context";
+import { getMonthNames1 } from "@/lib/i18n/format";
 
 interface NoteSlot {
   slot: 1 | 2;
@@ -72,6 +62,8 @@ function weekdayInHalf(year: number, month: number, half: 1 | 2): string {
 export function NoteGeneratorClient(props: Props) {
   const { client, contacts, services, goals, medications, considerations, events, profile, calendarEntry, month, year } = props;
   const router = useRouter();
+  const { t, locale } = useTranslation();
+  const MONTH_NAMES = getMonthNames1(locale);
 
   const lg = contacts.find((c) => c.is_legal_rep);
   const defaultContactWith = lg
@@ -171,9 +163,9 @@ export function NoteGeneratorClient(props: Props) {
 
   // Manual event insert — places text before the closing line
   function handleInsertManual() {
-    if (!eventText.trim()) { toast.error("Enter event description"); return; }
+    if (!eventText.trim()) { toast.error(t("notes.enterEventDescription")); return; }
     const target = slots.find((s) => s.slot === eventTarget);
-    if (!target) { toast.error("No matching note to insert into"); return; }
+    if (!target) { toast.error(t("notes.noMatchingNote")); return; }
 
     const insertion = `During this month, ${eventText.trim()}`;
     const text = target.text;
@@ -190,14 +182,14 @@ export function NoteGeneratorClient(props: Props) {
 
     saveEvent();
     setEventText("");
-    toast.success("Event inserted into note");
+    toast.success(t("notes.eventInserted"));
   }
 
   // AI-assisted event insert
   async function handleInsertAI() {
-    if (!eventText.trim()) { toast.error("Enter event description"); return; }
+    if (!eventText.trim()) { toast.error(t("notes.enterEventDescription")); return; }
     const target = slots.find((s) => s.slot === eventTarget);
-    if (!target) { toast.error("No matching note to insert into"); return; }
+    if (!target) { toast.error(t("notes.noMatchingNote")); return; }
 
     setInsertingAI(true);
     try {
@@ -222,7 +214,7 @@ export function NoteGeneratorClient(props: Props) {
       ));
       saveEvent();
       setEventText("");
-      toast.success("AI updated the note — review the changes");
+      toast.success(t("notes.aiUpdated"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "AI insertion failed");
     } finally {
@@ -234,7 +226,7 @@ export function NoteGeneratorClient(props: Props) {
     setSlots((prev) => prev.map((s) =>
       s.slot === slot && s.previousText ? { ...s, text: s.previousText, previousText: null } : s
     ));
-    toast.success("Reverted to previous version");
+    toast.success(t("notes.reverted"));
   }
 
   async function saveEvent() {
@@ -271,7 +263,7 @@ export function NoteGeneratorClient(props: Props) {
         .single();
 
       if (error) {
-        toast.error(`Error saving contact ${slot.slot}: ${error.message}`);
+        toast.error(t("notes.errorSavingContact", { slot: String(slot.slot), message: error.message }));
         setSaving(false);
         return;
       }
@@ -287,9 +279,9 @@ export function NoteGeneratorClient(props: Props) {
 
     if (status === "finalized") {
       await copyRichText(allTexts.join("\n\n" + "=".repeat(60) + "\n\n"));
-      toast.success(`${slots.length} note${slots.length > 1 ? "s" : ""} finalized & copied to clipboard!`);
+      toast.success(t(slots.length > 1 ? "notes.finalizedCopied" : "notes.finalizedCopiedOne", { count: slots.length }));
     } else {
-      toast.success(`${slots.length} draft${slots.length > 1 ? "s" : ""} saved`);
+      toast.success(t(slots.length > 1 ? "notes.draftsSaved" : "notes.draftsSavedOne", { count: slots.length }));
     }
 
     setSaving(false);
@@ -301,7 +293,7 @@ export function NoteGeneratorClient(props: Props) {
     const s = slots.find((s) => s.slot === slot);
     if (!s) return;
     await copyRichText(s.text);
-    toast.success(`Contact ${slot} copied to clipboard`);
+    toast.success(t("notes.contactCopied", { slot: String(slot) }));
   }
 
   async function findNextClient() {
@@ -329,8 +321,8 @@ export function NoteGeneratorClient(props: Props) {
   if (!calendarEntry) {
     return (
       <div className="max-w-2xl text-center py-12">
-        <p className="text-muted-foreground">No calendar entry found for {MONTH_NAMES[month]} {year}.</p>
-        <p className="text-sm text-muted-foreground mt-2">Generate a calendar from the client's Calendar page first.</p>
+        <p className="text-muted-foreground">{t("notes.noCalendarEntry", { month: MONTH_NAMES[month], year })}</p>
+        <p className="text-sm text-muted-foreground mt-2">{t("notes.generateCalendarFirst")}</p>
       </div>
     );
   }
@@ -342,9 +334,9 @@ export function NoteGeneratorClient(props: Props) {
         <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-green-100 text-green-600 mx-auto">
           <Check className="h-8 w-8" />
         </div>
-        <h2 className="text-2xl font-bold">All done for {MONTH_NAMES[month]} {year}</h2>
-        <p className="text-muted-foreground">All contacts for {client.first_name} are complete this month.</p>
-        <Link href="/" className="text-sm text-muted-foreground hover:underline">Back to Dashboard</Link>
+        <h2 className="text-2xl font-bold">{t("notes.allDoneMonth", { month: MONTH_NAMES[month], year })}</h2>
+        <p className="text-muted-foreground">{t("notes.allContactsComplete", { name: client.first_name })}</p>
+        <Link href="/" className="text-sm text-muted-foreground hover:underline">{t("notes.backToDashboard")}</Link>
       </div>
     );
   }
@@ -356,9 +348,9 @@ export function NoteGeneratorClient(props: Props) {
         <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-green-100 text-green-600 mx-auto">
           <Check className="h-8 w-8" />
         </div>
-        <h2 className="text-2xl font-bold">Notes Saved</h2>
+        <h2 className="text-2xl font-bold">{t("notes.notesSaved")}</h2>
         <p className="text-muted-foreground">
-          {client.first_name} {client.last_name} — {MONTH_NAMES[month]} {year} — {slots.length} note{slots.length > 1 ? "s" : ""} finalized
+          {t(slots.length > 1 ? "notes.noteFinalized" : "notes.notesFinalizedOne", { name: `${client.first_name} ${client.last_name}`, month: MONTH_NAMES[month], year, count: slots.length })}
         </p>
         <div className="flex flex-col items-center gap-3">
           {loadingNext ? (
@@ -368,9 +360,9 @@ export function NoteGeneratorClient(props: Props) {
               Next Client <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           ) : (
-            <p className="text-lg font-medium text-green-600">All clients done for {MONTH_NAMES[month]}!</p>
+            <p className="text-lg font-medium text-green-600">{t("notes.allClientsDone", { month: MONTH_NAMES[month] })}</p>
           )}
-          <Link href="/" className="text-sm text-muted-foreground hover:underline">Back to Dashboard</Link>
+          <Link href="/" className="text-sm text-muted-foreground hover:underline">{t("notes.backToDashboard")}</Link>
         </div>
       </div>
     );
@@ -385,7 +377,7 @@ export function NoteGeneratorClient(props: Props) {
             {client.first_name} {client.last_name} — {MONTH_NAMES[month]} {year}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {slots.length} contact{slots.length > 1 ? "s" : ""} to generate
+            {t("notes.contactsToGenerate", { count: slots.length })}
           </p>
         </div>
         <div className="flex flex-wrap gap-1">
@@ -406,7 +398,7 @@ export function NoteGeneratorClient(props: Props) {
                 <Badge variant={slot.contactType === "FF" ? "default" : slot.contactType === "ADM" ? "outline" : "secondary"}>
                   {slot.contactType}
                 </Badge>
-                Contact {slot.slot} — {CAT_LABELS[slot.category] ?? slot.category}
+                {t("notes.contactSlot", { slot: slot.slot })} — {t("noteCategory." + slot.category)}
               </CardTitle>
               <div className="flex items-center gap-2">
                 <Input
@@ -416,7 +408,7 @@ export function NoteGeneratorClient(props: Props) {
                   className="w-40 h-8 text-sm"
                 />
                 <Button variant="ghost" size="sm" onClick={() => handleCopySingle(slot.slot)}>
-                  <Copy className="h-3.5 w-3.5 mr-1" /> Copy
+                  <Copy className="h-3.5 w-3.5 mr-1" /> {t("notes.copy")}
                 </Button>
               </div>
             </div>
@@ -429,7 +421,7 @@ export function NoteGeneratorClient(props: Props) {
             />
             {slot.previousText && (
               <Button variant="outline" size="sm" onClick={() => handleUndo(slot.slot)}>
-                Undo AI edit
+                {t("notes.undoAI")}
               </Button>
             )}
           </CardContent>
@@ -441,15 +433,15 @@ export function NoteGeneratorClient(props: Props) {
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Plus className="h-4 w-4" />
-            Something happened this month?
+            {t("notes.somethingHappened")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-2 space-y-2">
-              <Label>What happened?</Label>
+              <Label>{t("notes.whatHappened")}</Label>
               <Textarea
-                placeholder="e.g., Client moved to a new address at 123 Main St, Miami FL 33101"
+                placeholder={t("notes.whatHappenedPlaceholder")}
                 value={eventText}
                 onChange={(e) => setEventText(e.target.value)}
                 rows={3}
@@ -457,11 +449,11 @@ export function NoteGeneratorClient(props: Props) {
             </div>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>When?</Label>
+                <Label>{t("notes.when")}</Label>
                 <Input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Insert into</Label>
+                <Label>{t("notes.insertInto")}</Label>
                 <select
                   value={eventTarget}
                   onChange={(e) => setEventTarget(parseInt(e.target.value) as 1 | 2)}
@@ -469,7 +461,7 @@ export function NoteGeneratorClient(props: Props) {
                 >
                   {slots.map((s) => (
                     <option key={s.slot} value={s.slot}>
-                      Contact {s.slot} ({s.contactType})
+                      {t("notes.contactSlotType", { slot: s.slot, type: s.contactType })}
                     </option>
                   ))}
                 </select>
@@ -478,11 +470,11 @@ export function NoteGeneratorClient(props: Props) {
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleInsertManual} disabled={!eventText.trim()}>
-              <Plus className="h-4 w-4 mr-1" /> Insert Manually
+              <Plus className="h-4 w-4 mr-1" /> {t("notes.insertManually")}
             </Button>
             <Button onClick={handleInsertAI} disabled={!eventText.trim() || insertingAI}>
               {insertingAI ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
-              {insertingAI ? "AI is editing..." : "Add with AI"}
+              {insertingAI ? t("notes.aiEditing") : t("notes.addWithAI")}
             </Button>
           </div>
         </CardContent>
@@ -493,10 +485,10 @@ export function NoteGeneratorClient(props: Props) {
       <div className="flex gap-3">
         <Button onClick={() => handleSaveAll("finalized")} disabled={saving} className="flex-1">
           {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Copy className="h-4 w-4 mr-2" />}
-          {saving ? "Saving..." : `Finalize & Copy All (${slots.length})`}
+          {saving ? t("notes.saving") : t("notes.finalizeAndCopyAll", { count: slots.length })}
         </Button>
         <Button variant="outline" onClick={() => handleSaveAll("draft")} disabled={saving}>
-          Save All as Drafts
+          {t("notes.saveAllDrafts")}
         </Button>
       </div>
     </div>

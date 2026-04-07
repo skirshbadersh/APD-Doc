@@ -12,13 +12,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Copy, Check, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatDate } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/context";
 import type { Client, ProgressNote, NoteStatus } from "@/lib/types/database";
 
-const STATUS_LABELS: Record<NoteStatus, string> = {
-  draft: "Draft",
-  reviewed: "Reviewed",
-  finalized: "Finalized",
-  uploaded_to_iconnect: "Uploaded to iConnect",
+const STATUS_KEY: Record<NoteStatus, string> = {
+  draft: "status.draft",
+  reviewed: "status.reviewed",
+  finalized: "status.finalized",
+  uploaded_to_iconnect: "status.uploadedToIconnect",
 };
 
 export function NoteViewClient({
@@ -29,6 +30,7 @@ export function NoteViewClient({
   note: ProgressNote;
 }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [note, setNote] = useState(initialNote);
   const [editableText, setEditableText] = useState(note.final_text || note.generated_text || "");
   const [saving, setSaving] = useState(false);
@@ -36,7 +38,7 @@ export function NoteViewClient({
 
   async function handleCopy() {
     await copyRichText(editableText);
-    toast.success("Copied to clipboard! Paste into iConnect.");
+    toast.success(t("notes.copiedClipboard"));
   }
 
   async function handleSave() {
@@ -50,12 +52,12 @@ export function NoteViewClient({
       .single();
     if (error) { toast.error(error.message); setSaving(false); return; }
     setNote(data);
-    toast.success("Note saved");
+    toast.success(t("notes.noteSaved"));
     setSaving(false);
   }
 
   async function handleDelete() {
-    if (!confirm("Delete this note? This will also unlink it from the calendar.")) return;
+    if (!confirm(t("notes.deleteConfirm"))) return;
     const supabase = createClient();
     await supabase
       .from("annual_calendar")
@@ -71,7 +73,7 @@ export function NoteViewClient({
       .eq("documented_in_note_id", note.id);
     const { error } = await supabase.from("progress_notes").delete().eq("id", note.id);
     if (error) { toast.error(error.message); return; }
-    toast.success("Note deleted");
+    toast.success(t("notes.noteDeleted"));
     router.push(`/clients/${client.id}/notes`);
     router.refresh();
   }
@@ -92,9 +94,9 @@ export function NoteViewClient({
     setNote(data);
     if (newStatus === "finalized") {
       await copyRichText(editableText);
-      toast.success("Finalized & copied to clipboard!");
+      toast.success(t("notes.finalizedCopiedSingle"));
     } else {
-      toast.success(`Status changed to ${STATUS_LABELS[newStatus]}`);
+      toast.success(t("notes.statusChanged", { status: t(STATUS_KEY[newStatus]) }));
     }
   }
 
@@ -103,26 +105,26 @@ export function NoteViewClient({
       <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">
-            {note.contact_type} Note: {client.first_name} {client.last_name}
+            {t("notes.noteView", { type: note.contact_type, name: `${client.first_name} ${client.last_name}` })}
           </h1>
           <div className="flex gap-2 mt-1">
             <Badge variant={note.contact_type === "FF" ? "default" : note.contact_type === "ADM" ? "outline" : "secondary"}>
               {note.contact_type}
             </Badge>
             <Badge variant="outline">{note.note_category?.replace(/_/g, " ")}</Badge>
-            <Badge variant="secondary" className="capitalize">{note.status.replace(/_/g, " ")}</Badge>
+            <Badge variant="secondary" className="capitalize">{t(STATUS_KEY[note.status])}</Badge>
             <span className="text-sm text-muted-foreground">{formatDate(note.note_date)}</span>
           </div>
         </div>
         <Button variant="outline" onClick={handleCopy}>
           <Copy className="h-4 w-4 mr-2" />
-          Copy to Clipboard
+          {t("notes.copyToClipboard")}
         </Button>
       </div>
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label>Note Text {isDraft ? "(editable)" : "(read-only — finalize to lock)"}</Label>
+          <Label>{isDraft ? t("notes.editable") : t("notes.readOnly")}</Label>
           <RichNoteEditor
             value={editableText}
             onChange={setEditableText}
@@ -134,7 +136,7 @@ export function NoteViewClient({
         {note.contact_with && (
           <Card>
             <CardContent className="py-3">
-              <span className="text-sm text-muted-foreground">Contact with: </span>
+              <span className="text-sm text-muted-foreground">{t("notes.contactWith")} </span>
               <span className="text-sm font-medium">{note.contact_with}</span>
             </CardContent>
           </Card>
@@ -144,24 +146,24 @@ export function NoteViewClient({
           {isDraft && (
             <>
               <Button onClick={handleSave} disabled={saving} variant="outline">
-                {saving ? "Saving..." : "Save Changes"}
+                {saving ? t("notes.saving") : t("notes.saveChanges")}
               </Button>
               <Button onClick={() => handleStatusChange("finalized")}>
                 <Copy className="h-4 w-4 mr-2" />
-                Finalize & Copy
+                {t("notes.finalizeAndCopy")}
               </Button>
             </>
           )}
           {note.status === "finalized" && (
             <Button onClick={() => handleStatusChange("uploaded_to_iconnect")} variant="outline">
               <Check className="h-4 w-4 mr-2" />
-              Mark as Uploaded to iConnect
+              {t("notes.markUploaded")}
             </Button>
           )}
           <div className="flex-1" />
           <Button variant="ghost" onClick={handleDelete} className="text-destructive hover:text-destructive">
             <Trash2 className="h-4 w-4 mr-2" />
-            Delete Note
+            {t("notes.deleteNote")}
           </Button>
         </div>
       </div>

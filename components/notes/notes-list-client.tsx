@@ -12,23 +12,8 @@ import {
 import { Plus, Trash2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
+import { useTranslation } from "@/lib/i18n/context";
 import type { ProgressNote, NoteCategory, NoteStatus } from "@/lib/types/database";
-
-const CATEGORY_LABELS: Partial<Record<NoteCategory, string>> = {
-  monthly_tc: "Monthly TC",
-  monthly_ff: "Monthly FF",
-  quarterly_provider_review: "Quarterly Review",
-  hurricane_season: "Hurricane Season",
-  service_auth_new_fy: "SA Distribution",
-  pre_sp_activities: "Pre-SP Activities",
-  sp_meeting_ff: "SP Meeting FF",
-  sp_delivery: "SP Delivery",
-  provider_contact: "Provider Contact",
-  adm_cp_adjustment: "CP Adjustment",
-  adm_sa_distribution: "SA Distribution",
-  cdc_related: "CDC",
-  custom: "Custom",
-};
 
 const STATUS_VARIANT: Record<NoteStatus, "default" | "secondary" | "outline" | "destructive"> = {
   draft: "outline",
@@ -46,10 +31,11 @@ export function NotesListClient({
   clientName: string;
   initialNotes: ProgressNote[];
 }) {
+  const { t } = useTranslation();
   const [notes, setNotes] = useState(initialNotes);
 
   async function handleDelete(noteId: string) {
-    if (!confirm("Delete this note?")) return;
+    if (!confirm(t("notes.deleteConfirm"))) return;
     const supabase = createClient();
     // Unlink from calendar
     await supabase.from("annual_calendar").update({ required_contact_1_note_id: null, status: "pending" }).eq("required_contact_1_note_id", noteId);
@@ -58,19 +44,19 @@ export function NotesListClient({
     const { error } = await supabase.from("progress_notes").delete().eq("id", noteId);
     if (error) { toast.error(error.message); return; }
     setNotes((prev) => prev.filter((n) => n.id !== noteId));
-    toast.success("Note deleted");
+    toast.success(t("notes.noteDeleted"));
   }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Notes: {clientName}</h1>
-          <p className="text-muted-foreground">{notes.length} notes</p>
+          <h1 className="text-2xl font-bold">{t("notes.title", { name: clientName })}</h1>
+          <p className="text-muted-foreground">{t("notes.count", { count: notes.length })}</p>
         </div>
         <Link href={`/clients/${clientId}/notes/new`} className={buttonVariants()}>
           <Plus className="h-4 w-4 mr-2" />
-          Generate Note
+          {t("notes.generateNote")}
         </Link>
       </div>
 
@@ -79,11 +65,11 @@ export function NotesListClient({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Preview</TableHead>
+                <TableHead>{t("notes.date")}</TableHead>
+                <TableHead>{t("notes.type")}</TableHead>
+                <TableHead>{t("notes.category")}</TableHead>
+                <TableHead>{t("notes.status")}</TableHead>
+                <TableHead>{t("notes.preview")}</TableHead>
                 <TableHead className="w-12" />
               </TableRow>
             </TableHeader>
@@ -104,7 +90,7 @@ export function NotesListClient({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {CATEGORY_LABELS[note.note_category as NoteCategory] ?? note.note_category}
+                    {t("noteCategory." + note.note_category)}
                   </TableCell>
                   <TableCell>
                     <Badge variant={STATUS_VARIANT[note.status as NoteStatus]} className="capitalize">

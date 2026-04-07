@@ -14,9 +14,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { Profile } from "@/lib/types/database";
+import { useTranslation } from "@/lib/i18n/context";
 
 export function ProfileSetupModal({ profile }: { profile: Profile | null }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,15 +58,14 @@ export function ProfileSetupModal({ profile }: { profile: Profile | null }) {
     <Dialog open={open} onOpenChange={() => {}} disablePointerDismissal>
       <DialogContent className="sm:max-w-md" showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>Complete Your Profile</DialogTitle>
+          <DialogTitle>{t("profile.completeTitle")}</DialogTitle>
           <DialogDescription>
-            Enter your Qualified Organization details. This info appears in
-            your progress notes.
+            {t("profile.completeDesc")}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSave} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="setup-fullName">Full Name</Label>
+            <Label htmlFor="setup-fullName">{t("profile.fullName")}</Label>
             <Input
               id="setup-fullName"
               value={fullName}
@@ -73,31 +74,31 @@ export function ProfileSetupModal({ profile }: { profile: Profile | null }) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="setup-qoName">QO Name (Qualified Organization)</Label>
+            <Label htmlFor="setup-qoName">{t("profile.qoName")}</Label>
             <Input
               id="setup-qoName"
-              placeholder="e.g. ABC Support Services, LLC"
+              placeholder={t("profile.qoNamePlaceholder")}
               value={qoName}
               onChange={(e) => setQoName(e.target.value)}
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="setup-qoPhone">QO Phone</Label>
+            <Label htmlFor="setup-qoPhone">{t("profile.qoPhone")}</Label>
             <Input
               id="setup-qoPhone"
               type="tel"
-              placeholder="(305) 555-0100"
+              placeholder={t("profile.qoPhonePlaceholder")}
               value={qoPhone}
               onChange={(e) => setQoPhone(e.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="setup-qoEmail">QO Email</Label>
+            <Label htmlFor="setup-qoEmail">{t("profile.qoEmail")}</Label>
             <Input
               id="setup-qoEmail"
               type="email"
-              placeholder="office@qo.com"
+              placeholder={t("profile.qoEmailPlaceholder")}
               value={qoEmail}
               onChange={(e) => setQoEmail(e.target.value)}
             />
@@ -106,7 +107,7 @@ export function ProfileSetupModal({ profile }: { profile: Profile | null }) {
             <p className="text-sm text-destructive">{error}</p>
           )}
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Saving..." : "Save & Continue"}
+            {loading ? t("common.saving") : t("profile.saveAndContinue")}
           </Button>
         </form>
       </DialogContent>

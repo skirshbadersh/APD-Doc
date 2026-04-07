@@ -18,23 +18,12 @@ import { getUrgency, urgencySortKey } from "@/lib/queries/dashboard";
 import type { NoteCategory } from "@/lib/types/database";
 import { Search } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/context";
 
-const CATEGORY_SHORT: Partial<Record<NoteCategory, string>> = {
-  monthly_tc: "Monthly",
-  monthly_ff: "Monthly",
-  quarterly_provider_review: "Quarterly Review",
-  hurricane_season: "Hurricane Prep",
-  service_auth_new_fy: "SA Distribution",
-  pre_sp_activities: "Pre-SP Activities",
-  sp_meeting_ff: "SP Meeting",
-  sp_delivery: "SP Delivery",
-  provider_contact: "Provider",
-  adm_cp_adjustment: "CP Adjust",
-  adm_sa_distribution: "SA Dist",
-  cdc_related: "CDC",
-  developing_resources: "Resources",
-  custom: "Custom",
-};
+function categoryLabel(category: string | null, t: (key: string) => string): string {
+  if (!category) return category ?? "";
+  return t("noteCategory." + category);
+}
 
 const DOT_COLORS: Record<UrgencyLevel, string> = {
   red: "bg-red-500",
@@ -52,37 +41,39 @@ function ContactCell({
   category: string | null;
   noteId: string | null;
 }) {
+  const { t } = useTranslation();
   if (!type) return <span className="text-muted-foreground text-xs">—</span>;
-  const label = CATEGORY_SHORT[category as NoteCategory] ?? category;
+  const label = categoryLabel(category, t);
   const done = !!noteId;
   return (
     <span className={`text-xs ${done ? "text-green-700 dark:text-green-400" : "text-muted-foreground"}`}>
-      {type} — {label} {done ? "Done" : "Pending"}
+      {type} — {label} {done ? t("workQueue.done") : t("workQueue.pending")}
     </span>
   );
 }
 
 function DueDescription({ row }: { row: WorkQueueRow }) {
-  const items: string[] = [];
+  const { t } = useTranslation();
+  const items: { key: string; label: string }[] = [];
 
-  if (row.is_sp_meeting_month) items.push("SP Meeting FF");
-  else if (row.is_ff_month) items.push("FF — Quarterly");
-  if (row.is_home_visit_month) items.push("Home Visit");
-  if (row.is_hurricane_month) items.push("Hurricane Prep TC");
-  if (row.is_pre_sp_month) items.push("Pre-SP TC");
-  if (row.is_sp_delivery_month) items.push("SP Delivery ADM");
-  if (row.is_sa_month) items.push("SA Distribution ADM");
-  if (row.is_provider_review_month) items.push("Provider Review");
+  if (row.is_sp_meeting_month) items.push({ key: "sp_meeting", label: t("workQueue.dueSPMeetingFF") });
+  else if (row.is_ff_month) items.push({ key: "ff", label: t("workQueue.dueFFQuarterly") });
+  if (row.is_home_visit_month) items.push({ key: "home_visit", label: t("workQueue.dueHomeVisit") });
+  if (row.is_hurricane_month) items.push({ key: "hurricane", label: t("workQueue.dueHurricanePrepTC") });
+  if (row.is_pre_sp_month) items.push({ key: "pre_sp", label: t("workQueue.duePreSPTC") });
+  if (row.is_sp_delivery_month) items.push({ key: "sp_delivery", label: t("workQueue.dueSPDeliveryADM") });
+  if (row.is_sa_month) items.push({ key: "sa", label: t("workQueue.dueSADistributionADM") });
+  if (row.is_provider_review_month) items.push({ key: "provider_review", label: t("workQueue.dueProviderReview") });
 
   // If nothing special, show the basic contact types
   if (items.length === 0) {
     const types: string[] = [];
-    if (row.contact_1_type) types.push(`${row.contact_1_type} — ${CATEGORY_SHORT[row.contact_1_category as NoteCategory] ?? "Monthly"}`);
-    if (row.contact_2_type && row.contact_2_type !== row.contact_1_type) types.push(`${row.contact_2_type} — ${CATEGORY_SHORT[row.contact_2_category as NoteCategory] ?? "Monthly"}`);
-    else if (row.contact_2_type) types.push(`${row.contact_2_type} — Monthly`);
+    if (row.contact_1_type) types.push(`${row.contact_1_type} — ${categoryLabel(row.contact_1_category, t)}`);
+    if (row.contact_2_type && row.contact_2_type !== row.contact_1_type) types.push(`${row.contact_2_type} — ${categoryLabel(row.contact_2_category, t)}`);
+    else if (row.contact_2_type) types.push(`${row.contact_2_type} — ${t("noteCategory.monthly_tc")}`);
     return (
       <div className="text-xs text-muted-foreground space-y-0.5">
-        {types.map((t, i) => <div key={i}>{t}</div>)}
+        {types.map((typ, i) => <div key={i}>{typ}</div>)}
       </div>
     );
   }
@@ -91,27 +82,27 @@ function DueDescription({ row }: { row: WorkQueueRow }) {
     <div className="flex flex-wrap gap-1">
       {items.map((item) => (
         <Badge
-          key={item}
-          variant={item.includes("SP Meeting") ? "destructive" : item.includes("FF") ? "default" : "outline"}
+          key={item.key}
+          variant={item.key === "sp_meeting" ? "destructive" : item.key === "ff" ? "default" : "outline"}
           className="text-[10px] py-0"
         >
-          {item}
+          {item.label}
         </Badge>
       ))}
     </div>
   );
 }
 
-function daysAgo(dateStr: string | null): string {
-  if (!dateStr) return "Never";
+function daysAgo(dateStr: string | null, t: (key: string, params?: Record<string, string | number>) => string): string {
+  if (!dateStr) return t("relative.never");
   const d = new Date(dateStr);
   const now = new Date();
   const diff = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-  if (diff === 0) return "Today";
-  if (diff === 1) return "Yesterday";
-  if (diff < 7) return `${diff}d ago`;
-  if (diff < 30) return `${Math.floor(diff / 7)}w ago`;
-  return `${Math.floor(diff / 30)}mo ago`;
+  if (diff === 0) return t("relative.today");
+  if (diff === 1) return t("relative.yesterday");
+  if (diff < 7) return t("relative.daysAgo", { count: diff });
+  if (diff < 30) return t("relative.weeksAgo", { count: Math.floor(diff / 7) });
+  return t("relative.monthsAgo", { count: Math.floor(diff / 30) });
 }
 
 export function WorkQueue({
@@ -123,6 +114,7 @@ export function WorkQueue({
   month: number;
   year: number;
 }) {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
 
   const sorted = [...rows]
@@ -154,7 +146,7 @@ export function WorkQueue({
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search clients..."
+          placeholder={t("workQueue.searchPlaceholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
@@ -167,12 +159,12 @@ export function WorkQueue({
             <TableHeader>
               <TableRow>
                 <TableHead className="w-8" />
-                <TableHead>Client</TableHead>
-                <TableHead>What's Due</TableHead>
-                <TableHead>Contact 1</TableHead>
-                <TableHead>Contact 2</TableHead>
-                <TableHead>Last Contact</TableHead>
-                <TableHead className="w-20">Actions</TableHead>
+                <TableHead>{t("workQueue.client")}</TableHead>
+                <TableHead>{t("workQueue.whatsDue")}</TableHead>
+                <TableHead>{t("workQueue.contact1")}</TableHead>
+                <TableHead>{t("workQueue.contact2")}</TableHead>
+                <TableHead>{t("workQueue.lastContact")}</TableHead>
+                <TableHead className="w-20">{t("workQueue.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -211,9 +203,9 @@ export function WorkQueue({
                     <TableCell>
                       <span className={`text-xs ${!row.last_contact_date ? "text-red-500" : "text-muted-foreground"}`}>
                         {row.last_contact_date ? (
-                          <span title={formatDate(row.last_contact_date)}>{daysAgo(row.last_contact_date)}</span>
+                          <span title={formatDate(row.last_contact_date)}>{daysAgo(row.last_contact_date, t)}</span>
                         ) : (
-                          "Never"
+                          t("relative.never")
                         )}
                       </span>
                     </TableCell>
@@ -223,10 +215,10 @@ export function WorkQueue({
                           href={startHref}
                           className={buttonVariants({ size: "sm" })}
                         >
-                          Start
+                          {t("workQueue.start")}
                         </Link>
                       ) : (
-                        <span className="text-xs text-green-600 font-medium">Done</span>
+                        <span className="text-xs text-green-600 font-medium">{t("workQueue.done")}</span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -237,11 +229,11 @@ export function WorkQueue({
         </div>
       ) : rows.length === 0 ? (
         <div className="border rounded-lg p-12 text-center text-muted-foreground">
-          No calendar entries for this month. Add clients with SP effective dates to populate the work queue.
+          {t("workQueue.emptyMonth")}
         </div>
       ) : (
         <div className="border rounded-lg p-8 text-center text-muted-foreground">
-          No clients match your search.
+          {t("workQueue.noSearchResults")}
         </div>
       )}
     </div>
