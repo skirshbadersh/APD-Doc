@@ -167,14 +167,25 @@ export function NoteGeneratorClient(props: Props) {
     setEventTarget(d.getDate() <= 15 ? 1 : 2);
   }, [eventDate]);
 
-  // Manual event insert
+  // Manual event insert — places text before the closing line
   function handleInsertManual() {
     if (!eventText.trim()) { toast.error("Enter event description"); return; }
     const target = slots.find((s) => s.slot === eventTarget);
     if (!target) { toast.error("No matching note to insert into"); return; }
 
-    const insertion = `\n\nDuring this month, ${eventText.trim()}`;
-    updateSlotText(eventTarget, target.text + insertion);
+    const insertion = `During this month, ${eventText.trim()}`;
+    const text = target.text;
+
+    // Find the last paragraph (the closer) and insert before it
+    const lastBreak = text.lastIndexOf("\n\n");
+    if (lastBreak > 0) {
+      const before = text.slice(0, lastBreak);
+      const closer = text.slice(lastBreak);
+      updateSlotText(eventTarget, `${before}\n\n${insertion}${closer}`);
+    } else {
+      updateSlotText(eventTarget, `${text}\n\n${insertion}`);
+    }
+
     saveEvent();
     setEventText("");
     toast.success("Event inserted into note");
